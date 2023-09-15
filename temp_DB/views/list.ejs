@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>좌표 데이터 조회 및 삭제</title>
+    <style>
+      body, html {
+        height: 100%;
+        width: 100%;
+        margin: 0px;
+        padding: 0px
+      }
+      .container {
+        height: 100%; 
+        display:flex; 
+        flex-direction: column;
+      }
+      #map {
+        height: 100%; 
+        flex:1;
+      }
+    </style>
+    <script type="text/javascript" src="./key.js"></script>
+    <script>
+      (g=>{var h,a,k,p="The Google Maps JavaScript API",c="google",l="importLibrary",q="__ib__",m=document,b=window;b=b[c]||(b[c]={});var d=b.maps||(b.maps={}),r=new Set,e=new URLSearchParams,u=()=>h||(h=new Promise(async(f,n)=>{await (a=m.createElement("script"));e.set("libraries",[...r]+"");for(k in g)e.set(k.replace(/[A-Z]/g,t=>"_"+t[0].toLowerCase()),g[k]);e.set("callback",c+".maps."+q);a.src=`https://maps.${c}apis.com/maps/api/js?`+e;d[q]=f;a.onerror=()=>h=n(Error(p+" could not load."));a.nonce=m.querySelector("script[nonce]")?.nonce||"";m.head.append(a)}));d[l]?console.warn(p+" only loads once. Ignoring:",g):d[l]=(f,...n)=>r.add(f)&&u().then(()=>d[l](f,...n))})({
+        key: gMap,
+        v: "weekly",
+        libraries: "maps, core, marker"
+      });
+    </script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-Zenh87qX5JnK2Jl0vWa8Ck2rdkQ2Bzep5IDxbcnCeuOxjzrPF/et3URy9Bv1WTRi" crossorigin="anonymous">
+  </head>
+
+  <body>
+    <div class="container">
+      <h1>좌표 데이터 조회 및 삭제</h1>
+      <form class="row g-3 needs-validation" action="/delete" method="POST" novalidate>
+        <div class="col-12">
+          <label for="coordinate" class="form-label">좌표</label>
+          <select id="coordinate" name="coordinate" class="form-select" onchange="setMap(this)" required>
+            <option value="">Choose...</option>
+            <% for(const coordinate of coords) { %>
+            <option value="<%= coordinate._id %>" data-lat="<%=coordinate.lat%>" data-lon="<%=coordinate.lon%>"><%=coordinate.lat%>, <%=coordinate.lon%></option>
+            <% } %>
+          </select>
+          <div class="invalid-feedback">
+            필수 항목입니다.
+          </div>
+        </div>
+        <div class="col-12">
+          <label for="password" class="form-label">Password</label>
+          <input type="password" class="form-control" name="password" id="password" required maxlength="100">
+          <div class="invalid-feedback">
+            필수 항목입니다.
+          </div>
+        </div>
+        <div class="col-12">
+          <button type="submit" class="btn btn-primary">삭제</button>
+          <a class="btn btn-secondary" href="/" role="button">취소</a>
+        </div>
+      </form><hr>
+      <div id="map"></div>
+    </div>
+
+    <script>
+      (() => {
+        'use strict'
+
+        const forms = document.querySelectorAll('.needs-validation')
+
+        Array.from(forms).forEach(form => {
+          form.addEventListener('submit', event => {
+            if (!form.checkValidity()) {
+              event.preventDefault()
+              event.stopPropagation()
+            }
+
+            form.classList.add('was-validated')
+          }, false)
+        })
+      })()
+
+      let map, marker;
+      async function initMap() {
+        const { Map } = await google.maps.importLibrary("maps");
+        const {Marker} = await google.maps.importLibrary("marker")
+        map = new Map(document.getElementById("map"), {
+          zoom: 8,
+          center: new google.maps.LatLng(36.38, 127.51),
+          mapTypeId: google.maps.MapTypeId.HYBRID,
+          mapTypeControlOptions: {
+              style: google.maps.MapTypeControlStyle.DROPDOWN_MENU
+          },
+          navigationControlOptions: {
+              style: google.maps.NavigationControlStyle.SMALL
+          },
+          scaleControl: true,
+          streetViewControl: false,
+          controlSize: 28,
+          minZoom: 3,
+        });
+        marker = new Marker({map: map});
+      }
+      initMap();
+
+      function setMap(opt) {
+        const latlng = new google.maps.LatLng(opt.options[opt.selectedIndex].dataset.lat, opt.options[opt.selectedIndex].dataset.lon);
+				marker.setPosition(latlng);
+        map.setCenter(latlng);
+			}
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-OERcA2EqjJCMA+/3y+gxIOqMEjwtxJY7qPCqsdltbNJuaOe923+mo//f6V8Qbsw3" crossorigin="anonymous"></script>
+  </body>
+</html>
