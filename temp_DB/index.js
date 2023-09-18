@@ -39,7 +39,7 @@ app.post('/add', function(req, res){
         db.collection('config').findOne({name: 'count'}, function(err, result){
           var mycount = result.value;
           if(mycount >= 100) {res.render('alert', {msg: '등록된 데이터가 너무 많습니다.'}); return;}
-          db.collection('coordinate').insertOne( { lat : req.body.lat, lon : req.body.lon } , function(){
+          db.collection('coordinate').insertOne( { lat : parseFloat(req.body.lat).toFixed(15), lon : parseFloat(req.body.lon).toFixed(15) } , function(){
             db.collection('config').updateOne({name: 'count'},{ $inc: {value: 1} })
             console.log("_id: " + (parseInt(mycount)+1) + " added")
             res.render('alert', {msg: (parseInt(mycount)+1) + "번 데이터를 추가하였습니다."});

@@ -82,12 +82,13 @@
       })()
 
       let map, marker;
+      const opts = Array.from(document.getElementById("coordinate").options);
       async function initMap() {
         const { Map } = await google.maps.importLibrary("maps");
-        const {Marker} = await google.maps.importLibrary("marker")
+        const {Marker} = await google.maps.importLibrary("marker");
         map = new Map(document.getElementById("map"), {
           zoom: 8,
-          center: new google.maps.LatLng(36.38, 127.51),
+          center: new google.maps.LatLng(37.8862, 127.7357),
           mapTypeId: google.maps.MapTypeId.HYBRID,
           mapTypeControlOptions: {
               style: google.maps.MapTypeControlStyle.DROPDOWN_MENU
@@ -100,13 +101,20 @@
           controlSize: 28,
           minZoom: 3,
         });
-        marker = new Marker({map: map});
+        <% for(const coordinate of coords) { %>
+          marker = new Marker({
+            map: map,
+            position: {lat: <%=coordinate.lat%>, lng: <%=coordinate.lon%>}
+          });
+          marker.addListener("click", (e) => {
+            opts.find(opt => new google.maps.LatLng(opt.dataset.lat, opt.dataset.lon).equals(e.latLng)).selected = true;
+          });
+        <% } %>
       }
       initMap();
 
       function setMap(opt) {
         const latlng = new google.maps.LatLng(opt.options[opt.selectedIndex].dataset.lat, opt.options[opt.selectedIndex].dataset.lon);
-				marker.setPosition(latlng);
         map.setCenter(latlng);
 			}
     </script>

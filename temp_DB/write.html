@@ -20,6 +20,14 @@
         height: 100%; 
         flex:1;
       }
+      input[type="number"]::-webkit-outer-spin-button,
+      input[type="number"]::-webkit-inner-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+      }
+      input[type="number"] {
+          -moz-appearance: textfield;
+      }
     </style>
     <script type="text/javascript" src="./key.js"></script>
     <script>
@@ -35,20 +43,21 @@
     <div class="container">
       <hr><h1 class="text-center">좌표 데이터 등록</h1><hr>
       <form class="row g-3 needs-validation" action="/add" method="POST" novalidate>
-          <div class="col-md-6">
+          <div class="col-md-6 form-group">
             <label for="lat" class="form-label">위도</label>
-            <input type="text" class="form-control" placeholder="Latitude" id="lat" name="lat" pattern="[0-9]+[.][0-9]+" required maxlength="14">
+            <input type="number" class="form-control" placeholder="Latitude" id="lat" name="lat" required min="-90" max="90" step="any">
             <div class="invalid-feedback">
               유효하지 않은 형식입니다.
             </div>
           </div>
-          <div class="col-md-6">
+          <div class="col-md-6 form-group">
             <label for="lon" class="form-label">경도</label>
-            <input type="text" class="form-control" placeholder="Longitude" id="lon" name="lon" pattern="[0-9]+[.][0-9]+" required maxlength="14">
+            <input type="number" class="form-control" placeholder="Longitude" id="lon" name="lon" required min="-180" max="180" step="any">
             <div class="invalid-feedback">
               유효하지 않은 형식입니다.
             </div>
           </div>
+        <div class="col"><button type="button" class="btn btn-success" onclick="lookOnMap()">지도에 표시</button></div>
           <div class="col-12">
             <label for="password" class="form-label">Password</label>
             <input type="password" class="form-control" name="password" id="password" required maxlength="100">
@@ -90,7 +99,7 @@
         const {Marker} = await google.maps.importLibrary("marker")
         map = new Map(document.getElementById("map"), {
           zoom: 8,
-          center: new google.maps.LatLng(36.38, 127.51),
+          center: new google.maps.LatLng(37.8862, 127.7357),
           mapTypeId: google.maps.MapTypeId.HYBRID,
           mapTypeControlOptions: {
               style: google.maps.MapTypeControlStyle.DROPDOWN_MENU
@@ -113,6 +122,18 @@
         document.getElementById("lat").value = latLng.lat();
         document.getElementById("lon").value = latLng.lng();
 			}
+
+      function lookOnMap() {
+        document.querySelectorAll('.form-group').forEach((e) => e.classList.add('was-validated'));
+        document.querySelector('.needs-validation').classList.remove('was-validated');
+        const latInp = document.getElementById("lat");
+        const lonInp = document.getElementById("lon");
+        if(latInp.checkValidity() && lonInp.checkValidity()) {
+          const newPos = new google.maps.LatLng(latInp.value, lonInp.value)
+          map.setCenter(newPos);
+          marker.setPosition(newPos);
+        }
+      }
     </script>
   </body>
 </html>
