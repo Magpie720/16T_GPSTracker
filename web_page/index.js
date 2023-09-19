@@ -7,7 +7,7 @@ app.use(express.urlencoded( {extended : false } ));
 app.use(express.static("api"));
 const mongodb = require('mongodb');
 app.set('view engine', 'ejs');
-var db;
+var db, prevLat=null, prevLon=null;
 mongodb.MongoClient.connect(key.mongo, function(err, client){
   if (err) return console.log(err)
   db = client.db('GPS');
@@ -70,3 +70,25 @@ app.post('/delete', function(req, res){
   })
 });
 
+app.post('/update', function(req, res){
+  db.collection('config').findOne({name: 'password'}, function(err, result){
+      if(result.value == req.body.key) {
+        //db.collection('config').findOne({name: 'count'}, function(err, result){
+          //var mycount = result.value;
+          //if(mycount >= 100) {res.status(401).send(); return;}
+          if(prevLat == req.body.lat && prevLon == req.body.lon) {res.status(200).send(); return;}
+          db.collection('coordinate').insertOne( { lat : parseFloat(req.body.lat).toFixed(6), lon : parseFloat(req.body.lon).toFixed(6) } , function(){
+            db.collection('config').updateOne({name: 'count'},{ $inc: {value: 1} });
+            console.log(req.body.lat+', '+req.body.lon+" added");
+            prevLat = req.body.lat;
+            prevLon = req.body.lon;
+            res.status(201).send();
+          });
+        //});
+      }
+      else {
+        console.log("wrong pw");
+        res.status(401).send();
+      }
+  })
+});
