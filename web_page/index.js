@@ -26,6 +26,12 @@ app.get('/write', function(req, res) {
     res.sendFile(__dirname +'/write.html')
 })
 
+app.get('/map', function(req, res) { 
+  db.collection('coordinate').find().toArray(function(err, result){
+    res.render('map.ejs', {coords : result})
+  })
+})
+
 app.get('/list', function(req, res) {
   db.collection('coordinate').find().toArray(function(err, result){
     res.render('list.ejs', {coords : result})
