@@ -1,48 +1,88 @@
-<!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Google Map</title>
-            <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyALuNZjv26aWboIy9FpbHDZNmVkwSjFM8U&callback=initMap" async defer></script>
-        </head>
-        <body>
-            <div id="map" style="height: 500px;"></div>
-            <script>
-                function initMap() {
-                    const map = new google.maps.Map(document.getElementById("map"), {
-                        center: { lat: <%= parseFloat(coords[0].lat) %>, lng: <%= parseFloat(coords[0].lon) %> }, // 첫 번째 좌표를 중심으로 설정
-                        zoom: 14, // 초기 줌 레벨
-                    });
-        
-                    const bounds = new google.maps.LatLngBounds();
-                    const infoWindow = new google.maps.InfoWindow();
-        
-                    const markers = []; // 모든 마커를 저장할 배열
-        
-                    <% for(const c of coords) { %>
-                        const marker = new google.maps.Marker({
-                            position: { lat: <%= parseFloat(c.lat) %>, lng: <%= parseFloat(c.lon) %> },
-                            map: map
-                        });
-                        bounds.extend(marker.position);
-        
-                        marker.addListener("click", () => {
-                            map.panTo(marker.position);
-                            infoWindow.setContent(`위도: <%= c.lat %>, 경도: <%= c.lon %>`);
-                            infoWindow.open({
-                                anchor: marker,
-                                map
-                            });
-                        });
-        
-                        markers.push(marker); // 마커를 배열에 추가
-                    <% } %>
-        
-                    // 모든 마커가 표시될 수 있도록 지도 확대/축소 설정
-                    map.fitBounds(bounds);
-                }
-            </script>
-        </body>
-        </html>
-        
+<!doctype html>
+<html lang="en" data-bs-theme="dark">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>캡스톤디자인 16조</title>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyALuNZjv26aWboIy9FpbHDZNmVkwSjFM8U&callback=initMap" async defer></script>
+    <style>
+      body, html {
+        height: 400px;
+        width: 100%;
+      }
+      .header{
+            padding: 20px;
+            text-align: center;
+        }
+      .container {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+      }
+      #map {
+        height: 100%;
+        flex: 1;
+      }
+    </style>
+  </head>
+
+  <body>
+    <hr><h1 class="header">소프트웨어 캡스톤디자인 16조</h1><hr>
+    <div class="container">
+      <div id="map"></div>
+    </div>
+
+    <script>
+    let map, marker;
+    let markers = []; // 마커를 저장할 배열
+    let polyline; // 연결된 선을 저장할 변수
+
+    async function initMap() {
+        const { Map } = await google.maps.importLibrary("maps");
+        const { Marker } = await google.maps.importLibrary("marker");
+
+        map = new Map(document.getElementById("map"), {
+            zoom: 8,
+            center: new google.maps.LatLng(37.8862, 127.7357),
+            mapTypeId: google.maps.MapTypeId.ROADMAP,
+            mapTypeControlOptions: {
+                style: google.maps.MapTypeControlStyle.DROPDOWN_MENU
+            },
+            navigationControlOptions: {
+                style: google.maps.NavigationControlStyle.SMALL
+            },
+            scaleControl: true,
+            streetViewControl: false,
+            controlSize: 28,
+            minZoom: 3,
+        });
+
+        <% for(const coordinate of coords) { %>
+            marker = new Marker({
+                map: map,
+                position: {lat: <%=coordinate.lat%>, lng: <%=coordinate.lon%>}
+            });
+            markers.push(marker); // 마커를 배열에 추가
+
+            marker.addListener("click", () => {
+                opts.find(opt => new google.maps.LatLng(opt.dataset.lat, opt.dataset.lon).equals(e.latLng)).selected = true;
+            });
+        <% } %>
+
+        // 마커를 연결한 선 생성
+        polyline = new google.maps.Polyline({
+            path: markers.map(marker => marker.getPosition()),
+            geodesic: true, // 대원 면적을 고려한 선
+            strokeColor: "#FF0000", // 선의 색상
+            strokeOpacity: 1.0, // 선의 투명도
+            strokeWeight: 3 // 선의 두께
+        });
+
+        // 선을 지도에 추가
+        polyline.setMap(map);
+    }
+
+    initMap();
+    </script>
+  </body>
+</html>
