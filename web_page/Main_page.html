@@ -1,14 +1,15 @@
 <!doctype html>
 <html lang="en" data-bs-theme="auto">
-  <head><script src="/docs/5.3/assets/js/color-modes.js"></script>
+  <head>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyALuNZjv26aWboIy9FpbHDZNmVkwSjFM8U&callback=initMap" async defer></script>
+    <script src="/docs/5.3/assets/js/color-modes.js"></script>
 
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="">
     <meta name="author" content="Mark Otto, Jacob Thornton, 그리고 Bootstrap 기여자들">
     <meta name="generator" content="Hugo 0.115.4">
-    <title>캡스톤디자인 16조 잡았다요놈
-    </title>
+    <title>캡스톤디자인 16조 잡았다요놈</title>
 
     <link rel="canonical" href="https://getbootstrap.kr/docs/5.3/examples/carousel/">
 
@@ -191,6 +192,38 @@
   </nav>
 </header>
 
+<div class="container">
+  <div id="map"></div>
+</div>
+<script>
+  let map, marker;
+  
+  async function initMap() {
+      const { Map } = await google.maps.importLibrary("maps");
+      const { Marker } = await google.maps.importLibrary("marker");
+  
+      map = new Map(document.getElementById("map"), {
+          zoom: 8,
+          center: new google.maps.LatLng(37.8862, 127.7357),
+          mapTypeId: google.maps.MapTypeId.ROADMAP,
+          mapTypeControlOptions: {
+              style: google.maps.MapTypeControlStyle.DROPDOWN_MENU
+          },
+          navigationControlOptions: {
+              style: google.maps.NavigationControlStyle.SMALL
+          },
+          scaleControl: true,
+          streetViewControl: false,
+          controlSize: 28,
+          minZoom: 3,
+      });
+
+  }
+  
+  initMap();
+  
+</script>
+</body>
 <main>
 
   <!-- <div id="myCarousel" class="carousel slide mb-6" data-bs-ride="carousel">
@@ -247,20 +280,13 @@
   <!-- Marketing messaging and featurettes
   ================================================== -->
   <!-- Wrap the rest of the page in another container to center all the content. -->
-<div style="margin-top: 100px;">.</div>
+<div style="margin-top: 60px;"></div>
   <div class="container marketing">
 
     <hr class="featurette-divider">
-
-    <div class="row featurette">
-      <div class="col-md-7">
-        <h2 class="featurette-heading fw-normal lh-1">제품홍보1 <span class="text-body-secondary">~~~</span></h2>
-        <p class="lead">설명 및 이미지1.</p>
-      </div>
-      <div class="col-md-5">
-        <svg class="bd-placeholder-img bd-placeholder-img-lg featurette-image img-fluid mx-auto" width="80%" height="40%" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Placeholder: 500x500" preserveAspectRatio="xMidYMid slice" focusable="false"><title>Placeholder</title><rect width="100%" height="100%" fill="var(--bs-secondary-bg)"/><text x="50%" y="50%" fill="var(--bs-secondary-color)" dy=".3em">500x500</text></svg>
-      </div>
-    </div>
+    
+    
+    
 
     <!-- Three columns of text below the carousel -->
     <div class="row">
@@ -270,7 +296,7 @@
           <image href="https://blogfiles.pstatic.net/MjAyMzEwMTFfODcg/MDAxNjk3MDA5NjgzNzE3._PCSp-pAOTbiD6HDbDQ1JN1CzSpeXgWkPibHyI05P28g.m5EnSFR4cdymaNBNP2tn-IiCRPdOIGsV86mHV6Ifc24g.PNG.kjw991115/KakaoTalk_Photo_2023-10-11-16-34-12.png" width="143" height="143" />
         </svg>
         <h2 class="fw-normal">지도 조회</h2>
-        <p>등록하신 제품의 위치를 지도에서 보실수 있습니다.</p>
+        <p>차량의 이동경로를 시간별로 지도에서 보실수 있습니다.</p>
         <p><a class="btn btn-secondary" href="views/map.ejs">View details &raquo;</a></p>
       </div><!-- /.col-lg-4 -->
       <div class="col-lg-4">
