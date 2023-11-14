@@ -40,8 +40,8 @@
           <label for="coordinate" class="form-label">좌표</label>
           <select id="coordinate" name="coordinate" class="form-select" onchange="setMap(this)" required>
             <option value="">Choose...</option>
-            <% for(const coordinate of coords) { %>
-            <option value="<%= coordinate._id %>" data-lat="<%=coordinate.lat%>" data-lon="<%=coordinate.lon%>"><%=coordinate.lat%>, <%=coordinate.lon%></option>
+            <% for(const coordinate of coord01) { %>
+            <option value="<%=coordinate._id %>" data-lat="<%=coordinate.lat%>" data-lon="<%=coordinate.lon%>"><%=coordinate.lat%>, <%=coordinate.lon%></option>
             <% } %>
           </select>
           <div class="invalid-feedback">
@@ -101,7 +101,7 @@
           controlSize: 28,
           minZoom: 3,
         });
-        <% for(const coordinate of coords) { %>
+        <% for(const coordinate of coord01) { %>
           marker = new Marker({
             map: map,
             position: {lat: <%=coordinate.lat%>, lng: <%=coordinate.lon%>}
