@@ -34,7 +34,9 @@ TYPE1SC TYPE1SC(M1Serial, DebugSerial, PWR_PIN, RST_PIN, WAKEUP_PIN);
 unsigned long lastTime = 0;
 unsigned long timerDelay = 5000;
 double lat, lon, speed, alt, course;
+//double lat=37.885502, lon=127.717523, speed=1.61, alt=46.60, course=51.71;
 uint32_t date, time_;
+//uint32_t date=251023, time_=7051486;
 bool flag = false;
 
 char IPAddr[32];
@@ -79,9 +81,7 @@ void setup() {
     }
     delay(1000);
   }
-  //TYPE1SC.socketCreate(1, IPAddr, _PORT);
-  //TYPE1SC.socketActivate();
-  
+  TYPE1SC.socketCreate(1, IPAddr, _PORT);
   /*WiFi.begin(ssid, password);
   while(WiFi.status() != WL_CONNECTED) {
     delay(500);
@@ -91,6 +91,7 @@ void setup() {
   //Serial.println(WiFi.localIP());
   u8x8.clear();
   u8x8log.print("Ready.\n");
+  delay(2000);
 }
 
 void getgps() {
@@ -114,6 +115,11 @@ void loop() {
     }
   }
 
+  while (TYPE1SC.canConnect() != 0) {
+        u8x8log.print("LTE not ready\n");
+        delay(2000);
+  }
+
   if ((millis() - lastTime) > timerDelay) {
     if(flag == true) {
     /*if(WiFi.status()== WL_CONNECTED){
@@ -133,13 +139,6 @@ void loop() {
     else {
       Serial.println("WiFi Disconnected");
     }*/
-
-      while (TYPE1SC.canConnect() != 0) {
-        u8x8log.print("LTE not ready\n");
-        delay(2000);
-      }
-      TYPE1SC.socketCreate(1, IPAddr, _PORT);
-      TYPE1SC.socketActivate();
       String httpRequestData = "key="+key+"&id="+ID+"&lat="+String(lat, 6)+"&lon="+String(lon, 6)+"&date="+String(date)+"&time="+String(time_)+"&speed="+String(speed)+"&course="+String(course)+"&alt="+String(alt);   
 
       String data = "POST /update HTTP/1.1\r\n";
@@ -147,17 +146,23 @@ void loop() {
       data += "Content-Type:application/x-www-form-urlencoded\r\n";
       data += "Content-Length:" + String(httpRequestData.length()) + "\r\n";
       data += "\r\n" + httpRequestData;
-      
-      if (TYPE1SC.socketSend(data.c_str()) == 0) {
-        u8x8log.print("[POST Sent]");
-        u8x8log.print("\n");
-      } 
-      else {
-        u8x8log.print("HTTP send error");
+
+    INFO:
+      TYPE1SC.socketActivate();
+      if (TYPE1SC.socketInfo(sckInfo, sizeof(sckInfo)) == 0) {
+        if (strcmp(sckInfo, "ACTIVATED")) {
+          delay(500);
+          goto INFO;
+        }
       }
 
+      if (TYPE1SC.socketSend(data.c_str()) == 0) {
+        u8x8log.print("[POST Sent]\n");
+      } 
+      else {
+        u8x8log.print("HTTP send error\n");
+      }
       TYPE1SC.socketDeActivate();
-      TYPE1SC.socketClose();
 
       flag = false;
       lastTime = millis();
