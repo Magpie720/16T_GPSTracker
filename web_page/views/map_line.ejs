@@ -30,6 +30,9 @@
 
 
     <style>
+      .margin{
+        margin-top: 50px;
+      }
       body, html {
         height: 70%;
         width: 100%;
@@ -125,6 +128,7 @@
     <link href="carousel.css" rel="stylesheet">
   </head>
   <body>
+    <div style="margin-top: 60px;"></div>
     <svg xmlns="http://www.w3.org/2000/svg" class="d-none">
       <symbol id="check2" viewBox="0 0 16 16">
         <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>
@@ -180,20 +184,20 @@
 <header data-bs-theme="dark">
   <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
     <div class="container-fluid">
-      <a class="navbar-brand" href="/index.html">잡았다 요놈</a>
+      <a class="navbar-brand" href="/main">잡았다 요놈</a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
       </button>
       <div class="collapse navbar-collapse" id="navbarCollapse">
         <ul class="navbar-nav ms-auto mb-2 mb-md-0">
           <li class="nav-item">
-            <a class="nav-link active" aria-current="page" href="/index.html">홈</a>
+            <a class="nav-link active" aria-current="page" href="/main">홈</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="/views/map.ejs">지도조회</a>
+            <a class="nav-link disabled" aria-disabled="true">지도조회</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link disabled" aria-disabled="true">기능설정</a>
+            <a class="nav-link" href="/map_setting">기능설정</a>
           </li>
         </ul>
         <!-- 검색기능 -->
@@ -209,13 +213,16 @@
 <div class="container">
   <div id="map"></div>
   <form class="machine-select-form">
-    <select id="machine" name="machine" value="<%= machineQ %>">
-      <option value="1">coord01</option>
-      <option value="2">coord02</option>
-      <option value="3">coord03</option>
+    <select id="machine" name="machine">
+      <option value="0"<%= machineQ == 0 ? " selected" : "" %>>전체 표시</option>
+      <option value="1"<%= machineQ == 1 ? " selected" : "" %>>1번기기</option>
+      <option value="2"<%= machineQ == 2 ? " selected" : "" %>>2번기기</option>
+      <option value="3"<%= machineQ == 3 ? " selected" : "" %>>3번기기</option>
     </select>
     &nbsp;
-    <input type="date" id="date" name="date" value="<%= dateQ %>">
+    <input type="datetime-local" id="start-date" name="start_date" value="<%= dateValue[0] %>">
+     ~ 
+    <input type="datetime-local" id="end-date" name="end_date" value="<%= dateValue[1] %>">
     &nbsp;
     <input type="submit" value="submit">
   </form>
@@ -224,7 +231,8 @@
 <script>
 let map, marker;
 let markers = []; // 마커를 저장할 배열
-let polyline; // 연결된 선을 저장할 변수
+let polylines = []; // 연결된 선을 저장할 변수
+let lastMarkers = [];
 
 async function initMap() {
         const { Map } = await google.maps.importLibrary("maps");
@@ -246,36 +254,66 @@ async function initMap() {
             minZoom: 3,
         });
 
-        <% for(const coordinate of coord) { %>
-            marker = new Marker({
-                map: map,
-                position: {lat: <%=coordinate.lat%>, lng: <%=coordinate.lon%>}
-            });
-            markers.push(marker); // 마커를 배열에 추가
-
-            marker.addListener("click", () => {
-                opts.find(opt => new google.maps.LatLng(opt.dataset.lat, opt.dataset.lon).equals(e.latLng)).selected = true;
-            });
-        <% } %>
-
-        // 마커를 연결한 선 생성
-        polyline = new google.maps.Polyline({
-            path: markers.map(marker => marker.getPosition()),
-            geodesic: true, // 대원 면적을 고려한 선
-            strokeColor: "<%= color %>", // 선의 색상
-            strokeOpacity: 1.0, // 선의 투명도
-            strokeWeight: 3 // 선의 두께
+        <% for(const coords of machines) { %>
+          var tem = [];
+          <% for(const coordinate of coords.coord) { %>
+              marker = new Marker({
+                  map: map,
+                  position: {lat: <%=coordinate.lat%>, lng: <%=coordinate.lon%>},
+                  icon: {
+                    path: google.maps.SymbolPath.CIRCLE,
+                    fillColor: "<%= coords.color %>",
+                    fillOpacity: 1,
+                    strokeWeight: 0,
+                    scale: 5,
+                  },
+              });
+              tem.push(marker); // 마커를 배열에 추가
+          <% } %>
+        tem.forEach(marker => {
+          marker.addListener("click", () => {
+              opts.find(opt => new google.maps.LatLng(opt.dataset.lat, opt.dataset.lon).equals(e.latLng)).selected = true;
+          });
         });
 
-        // 선을 지도에 추가
+        var polyline = new google.maps.Polyline({
+          path: tem.map(marker => marker.getPosition()),
+          geodesic: true, // 대원 면적을 고려한 선
+          strokeColor: "<%= coords.color %>", // 선의 색상
+          strokeOpacity: 0.6, // 선의 투명도
+          strokeWeight: 3 // 선의 두께
+        });
+
+        markers.push(tem);
+
+        polylines.push(polyline);
         polyline.setMap(map);
 
+          <% for(const coordinate of lastCoords) { %>
+          marker = new Marker({
+              map: map,
+              position: {lat: <%=coordinate.coord.lat%>, lng: <%=coordinate.coord.lon%>},
+              icon: {
+                path: google.maps.SymbolPath.CIRCLE,
+                fillColor: "<%= coordinate.color %>",
+                fillOpacity: 1,
+                strokeWeight: 0,
+                scale: 5,
+              },
+          });
+          lastMarkers.push(marker); // 마커를 배열에 추가
+          <% } %>
+        <% } %>
+        
     // 모든 마커 삭제 함수
     function clearMarkers() {
-        for (const marker of markers) {
+      for (let i = 0; i < markers.length; i++) {
+        // markers[i].pop();
+        for (const marker of markers[i]) {
             marker.setMap(null);
         }
-        markers.length = 0; // 배열 비우기
+        markers[i].length = 0; // 배열 비우기
+      }
     }
 
     clearMarkers();
@@ -285,7 +323,7 @@ initMap();
 </script>
 <main>
   
-  <div id="myCarousel" class="carousel slide mb-6" data-bs-ride="carousel">
+  <!-- <div id="myCarousel" class="carousel slide mb-6" data-bs-ride="carousel">
     <div class="carousel-indicators">
       <button type="button" data-bs-target="#myCarousel" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>
       <button type="button" data-bs-target="#myCarousel" data-bs-slide-to="1" aria-label="Slide 2"></button>
@@ -331,7 +369,7 @@ initMap();
       <span class="carousel-control-next-icon" aria-hidden="true"></span>
       <span class="visually-hidden">Next</span>
     </button>
-  </div>
+  </div> -->
 
 
   <footer class="container">
