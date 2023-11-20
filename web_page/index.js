@@ -1,7 +1,13 @@
+const http = require('http');
 const express = require('express');
 const crypto = require('crypto');
+const socketIO = require('socket.io');
 const key = require('./api/key.js');
+
 const app = express();
+const server = http.createServer(app);
+const io = socketIO(server);
+
 app.use(express.json());
 app.use(express.urlencoded( {extended : false } ));
 app.use(express.static("api"));
@@ -12,26 +18,48 @@ mongodb.MongoClient.connect(key.mongo, function(err, client){
   if (err) return console.log(err)
   db = client.db('GPS');
   console.log('DB connected')
-  app.listen(8080, function() {
+  getData();
+  server.listen(8080, function() {
     console.log('listening on 8080 -> 80')
   })
 })
 
 let coord01, coord02, coord03
-function getData(renderPage, res) {
+function getData() {
   db.collection('coordinate_01').find().toArray(function(err, result){
     coord01 = result
     db.collection('coordinate_02').find().toArray(function(err, result){
       coord02 = result
       db.collection('coordinate_03').find().toArray(function(err, result){
         coord03 = result
-        res.render(renderPage, {coord01, coord02, coord03})
       })
     })
   })
-  
-  
+  return {coord01, coord02, coord03};
 }
+
+function getColor(a) {
+  if (a == "1") {
+    return "#800000"
+  }else if (a == "2") {
+    return "#800080"
+  }else if (a == "3") {
+    return "#008080"
+  }
+}
+
+io.on('connection', (socket) => {
+  console.log('socket connected');
+
+  socket.on('message', (data) => {
+    let m = data;
+    if (["coord01", "coord02", "coord03"].includes(data)) {
+      let coord = getData()[m];
+      data = coord[coord.length - 1];
+      socket.emit("response", data.lat + "," + data.lon);
+    }
+  });
+});
 
 app.get('/', function(req, res) { 
   res.sendFile(__dirname +'/index.html')
@@ -46,15 +74,84 @@ app.get('/main', function(req, res) {
 })
 
 app.get('/map_line', function(req, res) { 
-  getData("map_line.ejs", res)
+  let machineQ = req.query.machine || "1";
+  // let dateQ = req.query.date || undefined;
+  let startDateValue = req.query["start_date"] || undefined;
+  let endDateValue = req.query["end_date"] || undefined;
+  let coords = getData();
+  let machines = [];
+  let machine;
+  let lastCoords = [];
+
+  function convertCoordDateTime(coord) {
+    let temDate = "20" + coord.date.match(/.{1,2}/g).reverse().join('-');
+    let temTime = ("000000" + coord.time).slice(-8).match(/.{1,2}/g).join(':').substring(0, 8) + '.000';
+
+    const newDateTime = new Date(new Date(temDate + "T" + temTime).getTime() + (9 * 60 * 60 * 1000));
+    // console.log(newDateTime + ", " + new Date(temDate + "T" + temTime));
+    return newDateTime;
+  }
+
+  let startDate = new Date(startDateValue);
+  let endDate = new Date(endDateValue);
+
+  if (["1", "2", "3"].includes(machineQ)) 
+  {
+    machine = machineQ;
+  }else {
+    machine = ["1", "2", "3"];
+  }
+
+  function divideArrayByTimeDifference(arr) {
+    let dividedArrays = [];
+    let currentArray = [arr[0]];
+
+    for (let i = 1; i < arr.length; i++) {
+      let timeDifference = convertCoordDateTime(arr[i]) - convertCoordDateTime(arr[i - 1]);
+
+      if (timeDifference > 10 * 60 * 1000) {   // 나누는 기준을 10 분으로 설정
+        dividedArrays.push(currentArray);
+        currentArray = [];
+      }
+
+      currentArray.push(arr[i]);
+    }
+
+    dividedArrays.push(currentArray);
+
+    return dividedArrays;
+  }
+
+  for (const Coord of machine) {
+    var coord = coords["coord0" + Coord];
+    if (startDateValue) {
+      coord = coord.filter(coord => (convertCoordDateTime(coord) >= startDate));
+    }
+    if (endDateValue) {
+      coord = coord.filter(coord => (convertCoordDateTime(coord) <= endDate));
+    }
+
+    lastCoords.push({coord: coord[coord.length - 1], color: getColor(Coord)});
+    coord = divideArrayByTimeDifference(coord);
+
+    for (const c of coord) {
+      machines.push({coord:c, color: getColor(Coord)});
+      // console.log(coord.length);
+    }
+  }
+  
+  res.render("map_line.ejs", {machineQ, dateValue: [startDateValue, endDateValue], machines, lastCoords});
 })
 
 app.get('/map_setting', function(req, res) { 
-  getData("map_setting.ejs", res)
+  let machineQ = req.query.machine || "1";
+  let coord = getData()["coord0" + machineQ];
+  let data = coord[coord.length - 1];
+  res.render("map_setting.ejs", {machineQ, data, color: getColor(machineQ)});
 })
 
 app.get('/list', function(req, res) {
-  getData("list.ejs", res)
+  res.render("list.ejs", getData());
 })
   
 app.post('/add', function(req, res){
