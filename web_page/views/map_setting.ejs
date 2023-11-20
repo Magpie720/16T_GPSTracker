@@ -217,13 +217,14 @@
   <div id="map"></div>
   <form class="machine-select-form">
     <select id="machine" name="machine" value="<%= machineQ %>">
-      <option value="1">coord01</option>
-      <option value="2">coord02</option>
-      <option value="3">coord03</option>
+      <option value="1">1번기기</option>
+      <option value="2">2번기기</option>
+      <option value="3">3번기기</option>
     </select>
     &nbsp;
     <input type="submit" value="submit">
   </form>
+  <button id="drawCircleButton" onclick="drawCircle()">100미터 반경 위치 지정하기</button>
 </div>
 
 <script>
@@ -290,7 +291,7 @@ function addMarker(lat, lon) {
         fillColor: "<%= color %>",
         fillOpacity: 1,
         strokeWeight: 0,
-        scale: 8,
+        scale: 5,
       },
   });
 
@@ -328,9 +329,63 @@ function checkMarkerInCircle() {
   }
 }
 
-function alert_outArea() {
-  alert("Out Area!!!");
+function alert_outArea(machine = "") {
+  showNotification(`${machine} Out Area!`, machine);
 }
+
+function checkNotificationPromise() {
+  try {
+    Notification.requestPermission().then();
+  } catch (e) {
+    return false;
+  }
+
+  return true;
+}
+
+window.addEventListener("load", function () {
+  if (Notification && Notification.permission !== "granted") {
+    Notification.requestPermission(function (status) {
+      if (Notification.permission !== status) {
+        Notification.permission = status;
+      }
+    });
+  }
+});
+
+function askNotificationPermission() {
+  function handlePermission(permission) {
+    if (!("permission" in Notification)) {
+      Notification.permission = permission;
+    }
+  }
+  
+  if (!("Notification" in window)) {
+    console.log("이 브라우저는 알림을 지원하지 않습니다.");
+  } else {
+    if (checkNotificationPromise()) {
+      Notification.requestPermission().then((permission) => {
+        handlePermission(permission);
+      });
+    } else {
+      Notification.requestPermission(function (permission) {
+        handlePermission(permission);
+      });
+    }
+  }
+}
+
+
+function showNotification(message, tag) {
+  if (Notification && Notification.permission === "granted") {
+    var n = new Notification(message, { tag: tag });
+  }
+  else {
+    alert(message);
+  }
+};
+
+askNotificationPermission();
 
 const socket = io(window.location.protocol + '//' + window.location.host);
 
@@ -353,10 +408,10 @@ initMap();
 
 <main>
 
-<button id="drawCircleButton" onclick="drawCircle()">Draw 100m Circle</button>
 
 
-  <div id="myCarousel" class="carousel slide mb-6" data-bs-ride="carousel">
+
+  <!-- <div id="myCarousel" class="carousel slide mb-6" data-bs-ride="carousel">
     <div class="carousel-indicators">
       <button type="button" data-bs-target="#myCarousel" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>
       <button type="button" data-bs-target="#myCarousel" data-bs-slide-to="1" aria-label="Slide 2"></button>
@@ -402,7 +457,7 @@ initMap();
       <span class="carousel-control-next-icon" aria-hidden="true"></span>
       <span class="visually-hidden">Next</span>
     </button>
-  </div>
+  </div> -->
 
 
   <footer class="container">
