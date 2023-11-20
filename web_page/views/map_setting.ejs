@@ -9,7 +9,9 @@
     <meta name="description" content="">
     <meta name="author" content="Mark Otto, Jacob Thornton, 그리고 Bootstrap 기여자들">
     <meta name="generator" content="Hugo 0.115.4">
-    <title>소프트웨어 캡스톤디자인 16조 잡았다 요놈</title>
+    <title>16조 잡았다 요놈</title>
+
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 
     <link rel="canonical" href="https://getbootstrap.kr/docs/5.3/examples/carousel/">
 
@@ -30,8 +32,11 @@
 
 
     <style>
+      .margin{
+        margin-top: 50px;
+      }
       body, html {
-        height: 70%;
+        height: 90%;
         width: 100%;
       }
       .header{
@@ -126,6 +131,7 @@
     <link href="carousel.css" rel="stylesheet">
   </head>
   <body>
+    <div style="margin-top: 60px;"></div>
     <svg xmlns="http://www.w3.org/2000/svg" class="d-none">
       <symbol id="check2" viewBox="0 0 16 16">
         <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>
@@ -181,17 +187,17 @@
 <header data-bs-theme="dark">
   <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
     <div class="container-fluid">
-      <a class="navbar-brand" href="/index.html">잡았다 요놈</a>
+      <a class="navbar-brand" href="/Main">잡았다 요놈</a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
       </button>
       <div class="collapse navbar-collapse" id="navbarCollapse">
         <ul class="navbar-nav ms-auto mb-2 mb-md-0">
           <li class="nav-item">
-            <a class="nav-link active" aria-current="page" href="/index.html">홈</a>
+            <a class="nav-link active" aria-current="page" href="/Main">홈</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="/map.ejs">지도조회</a>
+            <a class="nav-link" href="/map_line">지도조회</a>
           </li>
           <li class="nav-item">
             <a class="nav-link disabled" aria-disabled="true">기능설정</a>
@@ -209,11 +215,22 @@
 <!-- 구글맵 -->
 <div class="container">
   <div id="map"></div>
+  <form class="machine-select-form">
+    <select id="machine" name="machine" value="<%= machineQ %>">
+      <option value="1">coord01</option>
+      <option value="2">coord02</option>
+      <option value="3">coord03</option>
+    </select>
+    &nbsp;
+    <input type="submit" value="submit">
+  </form>
 </div>
 
 <script>
 let map;
 let circle; // 원을 저장할 변수
+let marker;
+let inArea = false;
 
 async function initMap() {
     const { Map } = await google.maps.importLibrary("maps");
@@ -233,6 +250,7 @@ async function initMap() {
         controlSize: 28,
         minZoom: 3,
     });
+  addMarker(<%= data.lat %>, <%= data.lon %>);
 }
 
 function drawCircle() {
@@ -258,15 +276,83 @@ function drawCircle() {
         center: center,
         radius: radius,
     });
+  checkMarkerInCircle();
 }
+
+function addMarker(lat, lon) {
+  let m;
+
+  m = new google.maps.Marker({
+      map: map,
+      position: new google.maps.LatLng(lat, lon),
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE, // 마커 모양을 원으로 설정
+        fillColor: "<%= color %>",
+        fillOpacity: 1,
+        strokeWeight: 0,
+        scale: 8,
+      },
+  });
+
+  if (marker) {
+    marker.setMap(null);
+  }
+
+  marker = m;
+
+  checkMarkerInCircle();
+}
+
+function checkMarkerInCircle() {
+  if (!circle || !marker) {
+    inArea = false;
+    return;
+  }
+
+  const markerPosition = marker.getPosition();
+  const circleCenter = circle.getCenter();
+  const circleRadius = circle.getRadius();
+
+  const distanceBetweenPoints = google.maps.geometry.spherical.computeDistanceBetween(
+    markerPosition,
+    circleCenter
+  );
+
+  if (distanceBetweenPoints <= circleRadius) {
+    inArea = true;
+  } else {
+    if (inArea == true) {
+      alert_outArea();
+    }
+    inArea = false;
+  }
+}
+
+function alert_outArea() {
+  alert("Out Area!!!");
+}
+
+const socket = io(window.location.protocol + '//' + window.location.host);
+
+socket.on('connect', () => {
+  setInterval(() => {
+    socket.emit('message', 'coord0' + '<%= machineQ %>');
+  }, 1000);
+});
+
+socket.on('response', (data) => {
+  let pos = data.split(',');
+  addMarker(parseFloat(pos[0]), parseFloat(pos[1]));
+  console.log("got packet");
+});
+
+initMap();
 </script>
 
 </body>
 
 <main>
 
-  
-  <!-- HTML 부분에 버튼을 추가합니다. -->
 <button id="drawCircleButton" onclick="drawCircle()">Draw 100m Circle</button>
 
 
