@@ -30,11 +30,8 @@
 
 
     <style>
-      .margin{
-        margin-top: 50px;
-      }
       body, html {
-        height: 90%;
+        height: 70%;
         width: 100%;
       }
       .header{
@@ -121,9 +118,6 @@
       .bd-mode-toggle {
         z-index: 1500;
       }
-      .custom-dropdown {
-        margin-right: 50px; /* 오른쪽으로 50px 이동 */
-      }
     </style>
 
     
@@ -131,7 +125,6 @@
     <link href="carousel.css" rel="stylesheet">
   </head>
   <body>
-    <div style="margin-top: 60px;"></div>
     <svg xmlns="http://www.w3.org/2000/svg" class="d-none">
       <symbol id="check2" viewBox="0 0 16 16">
         <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>
@@ -187,152 +180,73 @@
 <header data-bs-theme="dark">
   <nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
     <div class="container-fluid">
-      <a class="navbar-brand" href="/Main">잡았다 요놈</a>
+      <a class="navbar-brand" href="/index.html">잡았다 요놈</a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
       </button>
       <div class="collapse navbar-collapse" id="navbarCollapse">
         <ul class="navbar-nav ms-auto mb-2 mb-md-0">
           <li class="nav-item">
-            <a class="nav-link active" aria-current="page" href="/Main">홈</a>
+            <a class="nav-link active" aria-current="page" href="/index.html">홈</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link disabled" aria-disabled="true">지도조회</a>
+            <a class="nav-link" href="/views/map.ejs">지도조회</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="/map_setting">기능설정</a>
+            <a class="nav-link disabled" aria-disabled="true">기능설정</a>
           </li>
         </ul>
+        <!-- 검색기능 -->
+        <!-- <form class="d-flex" role="search">
+          <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search">
+          <button class="btn btn-outline-success" type="submit">Search</button>
+        </form> -->
       </div>
     </div>
   </nav>
 </header>
-
 <!-- 구글맵 -->
 <div class="container">
   <div id="map"></div>
+  <form class="machine-select-form">
+    <select id="machine" name="machine" value="<%= machineQ %>">
+      <option value="1">coord01</option>
+      <option value="2">coord02</option>
+      <option value="3">coord03</option>
+    </select>
+    &nbsp;
+    <input type="date" id="date" name="date" value="<%= dateQ %>">
+    &nbsp;
+    <input type="submit" value="submit">
+  </form>
 </div>
+
 <script>
-  // Node.js 서버에서 MongoDB 데이터 가져오기
-const express = require('express');
-const MongoClient = require('mongodb').MongoClient;
-const app = express();
-const port = 3000;
+let map, marker;
+let markers = []; // 마커를 저장할 배열
+let polyline; // 연결된 선을 저장할 변수
 
-// MongoDB 연결 정보
-const mongoUrl = 'mongodb+srv://team16:cap_team16@cluster0.gfbbacs.mongodb.net/?retryWrites=true&w=majority';
-const dbName = 'GPS';
-const collectionName = 'coordinate';
+async function initMap() {
+        const { Map } = await google.maps.importLibrary("maps");
+        const { Marker } = await google.maps.importLibrary("marker");
 
-app.get('/getCoordinatesByDate', (req, res) => {
-  const selectedDate = req.query.date; // 사용자가 선택한 날짜
+        map = new Map(document.getElementById("map"), {
+            zoom: 8,
+            center: new google.maps.LatLng(37.8862, 127.7357),
+            mapTypeId: google.maps.MapTypeId.ROADMAP,
+            mapTypeControlOptions: {
+                style: google.maps.MapTypeControlStyle.DROPDOWN_MENU
+            },
+            navigationControlOptions: {
+                style: google.maps.NavigationControlStyle.SMALL
+            },
+            scaleControl: true,
+            streetViewControl: false,
+            controlSize: 28,
+            minZoom: 3,
+        });
 
-  MongoClient.connect(mongoUrl, (err, client) => {
-    if (err) {
-      console.error(err);
-      res.status(500).json({ error: 'Failed to connect to the database' });
-      return;
-    }
-
-    const db = client.db(dbName);
-    const collection = db.collection(collectionName);
-
-    // 선택한 날짜에 해당하는 데이터를 가져오기
-    collection.find({ date: selectedDate }).toArray((err, result) => {
-      if (err) {
-        console.error(err);
-        res.status(500).json({ error: 'Failed to fetch data' });
-        return;
-      }
-
-      res.json(result);
-      client.close();
-    });
-  });
-});
-
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
-});
-
-  // JavaScript 부분: 시간대 선택 및 데이터 필터링 및 표시 함수
-  function showPathForDuration(hours) {
-      // UTC 시간대로 변환
-      const now = new Date();
-      const utcNow = new Date(now.getTime() + now.getTimezoneOffset() * 60000);
-  
-      // 선택한 시간 범위 계산
-      const start = new Date(utcNow);
-      start.setHours(start.getHours() - hours);
-  
-      // markers 배열을 초기화
-      clearMarkers();
-  
-      // 선택한 시간 범위 내의 좌표만 보여주기
-      for (const coordinate of coords) {
-          const timestamp = new Date(coordinate.timestamp); // 좌표의 타임스탬프
-          // 타임스탬프가 선택한 시간 범위 내에 있는 경우에만 좌표와 마커를 추가
-          if (timestamp >= start && timestamp <= utcNow) {
-              marker = new Marker({
-                  map: map,
-                  position: { lat: coordinate.lat, lng: coordinate.lon },
-              });
-              markers.push(marker); // 마커를 배열에 추가
-          }
-      }
-  
-      // 새로운 선을 그리기 전에 이전 선을 삭제
-      if (polyline) {
-          polyline.setMap(null);
-      }
-  
-      // 선택한 시간 범위 내의 좌표를 연결한 선 생성
-      polyline = new google.maps.Polyline({
-          path: markers.map((marker) => marker.getPosition()),
-          geodesic: true,
-          strokeColor: "#FF0000",
-          strokeOpacity: 1.0,
-          strokeWeight: 3,
-      });
-  
-      // 선을 지도에 추가
-      polyline.setMap(map);
-  }
-  
-  // 모든 마커 삭제 함수
-  function clearMarkers() {
-      for (const marker of markers) {
-          marker.setMap(null);
-      }
-      markers.length = 0; // 배열 비우기
-  }
-  
-  let map, marker;
-  let markers = []; // 마커를 저장할 배열
-  let polyline; // 연결된 선을 저장할 변수
-  
-  // 초기 맵 설정
-  async function initMap() {
-      const { Map } = await google.maps.importLibrary("maps");
-      const { Marker } = await google.maps.importLibrary("marker");
-  
-      map = new Map(document.getElementById("map"), {
-          zoom: 8,
-          center: new google.maps.LatLng(37.8862, 127.7357),
-          mapTypeId: google.maps.MapTypeId.ROADMAP,
-          mapTypeControlOptions: {
-              style: google.maps.MapTypeControlStyle.DROPDOWN_MENU,
-          },
-          navigationControlOptions: {
-              style: google.maps.NavigationControlStyle.SMALL,
-          },
-          scaleControl: true,
-          streetViewControl: false,
-          controlSize: 28,
-          minZoom: 3,
-      });
-  
-      <% for(const coordinate of coords) { %>
+        <% for(const coordinate of coord) { %>
             marker = new Marker({
                 map: map,
                 position: {lat: <%=coordinate.lat%>, lng: <%=coordinate.lon%>}
@@ -348,7 +262,7 @@ app.listen(port, () => {
         polyline = new google.maps.Polyline({
             path: markers.map(marker => marker.getPosition()),
             geodesic: true, // 대원 면적을 고려한 선
-            strokeColor: "#FF0000", // 선의 색상
+            strokeColor: "<%= color %>", // 선의 색상
             strokeOpacity: 1.0, // 선의 투명도
             strokeWeight: 3 // 선의 두께
         });
@@ -363,20 +277,62 @@ app.listen(port, () => {
         }
         markers.length = 0; // 배열 비우기
     }
-  
-      clearMarkers();
-  }
-  
-  initMap();
-</script>
 
+    clearMarkers();
+}
+
+initMap();
+</script>
 <main>
   
-  <div class="container">
-    <div id="map"></div>
-    <input type="date" id="datePicker">
-    <button id="showPathButton">Show Path</button>
+  <div id="myCarousel" class="carousel slide mb-6" data-bs-ride="carousel">
+    <div class="carousel-indicators">
+      <button type="button" data-bs-target="#myCarousel" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>
+      <button type="button" data-bs-target="#myCarousel" data-bs-slide-to="1" aria-label="Slide 2"></button>
+      <button type="button" data-bs-target="#myCarousel" data-bs-slide-to="2" aria-label="Slide 3"></button>
+    </div>
+    <div class="carousel-inner">
+      <div class="carousel-item active">
+        <svg class="bd-placeholder-img" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" preserveAspectRatio="xMidYMid slice" focusable="false"><rect width="100%" height="100%" fill="var(--bs-secondary-color)"/></svg>
+        <div class="container">
+          <div class="carousel-caption text-start">
+            <h1>Example headline.</h1>
+            <p class="opacity-75">Some representative placeholder content for the first slide of the carousel.</p>
+            <p><a class="btn btn-lg btn-primary" href="#">Sign up today</a></p>
+          </div>
+        </div>
+      </div>
+      <div class="carousel-item">
+        <svg class="bd-placeholder-img" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" preserveAspectRatio="xMidYMid slice" focusable="false"><rect width="100%" height="100%" fill="var(--bs-secondary-color)"/></svg>
+        <div class="container">
+          <div class="carousel-caption">
+            <h1>Another example headline.</h1>
+            <p>Some representative placeholder content for the second slide of the carousel.</p>
+            <p><a class="btn btn-lg btn-primary" href="#">Learn more</a></p>
+          </div>
+        </div>
+      </div>
+      <div class="carousel-item">
+        <svg class="bd-placeholder-img" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" preserveAspectRatio="xMidYMid slice" focusable="false"><rect width="100%" height="100%" fill="var(--bs-secondary-color)"/></svg>
+        <div class="container">
+          <div class="carousel-caption text-end">
+            <h1>One more for good measure.</h1>
+            <p>Some representative placeholder content for the third slide of this carousel.</p>
+            <p><a class="btn btn-lg btn-primary" href="#">Browse gallery</a></p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <button class="carousel-control-prev" type="button" data-bs-target="#myCarousel" data-bs-slide="prev">
+      <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+      <span class="visually-hidden">Previous</span>
+    </button>
+    <button class="carousel-control-next" type="button" data-bs-target="#myCarousel" data-bs-slide="next">
+      <span class="carousel-control-next-icon" aria-hidden="true"></span>
+      <span class="visually-hidden">Next</span>
+    </button>
   </div>
+
 
   <footer class="container">
     <p class="float-end"><a href="#">Back to top</a></p>
